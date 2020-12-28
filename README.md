@@ -29,6 +29,16 @@ How to help
 - Help me build binaries for the other CPU architectures, especially AArhc64
 - Share your experience in issues
 
+&nbsp;
+
+--------
+*awscliv2.appimage* is primarily distributed under the terms of both the [Apache
+License (Version 2.0)] and the [MIT license]. See [COPYRIGHT] for details.
+
 [AWS CLI v2]: https://awscli.amazonaws.com/v2/documentation/api/latest/index.html
 [AppImage]: https://appimage.org/
 [aws/aws-cli#4947]: https://github.com/aws/aws-cli/issues/4947
+
+[Apache License (Version 2.0)]: LICENSE-APACHE
+[MIT license]: LICENSE-MIT
+[COPYRIGHT]: COPYRIGHT

@@ -1,0 +1,8 @@
+# Build artifacts
+/aws.AppDir/
+/appimagetool
+/aws.zip
+/aws/
+
+# Build result
+/aws-*.AppImage

@@ -1,0 +1,38 @@
+#!/bin/bash
+set -euo pipefail; IFS=$'\n\t'
+
+# Logo is retrieved from AWS Architecture Icons, minified with svgcleaner
+#
+# References:
+#   https://aws.amazon.com/architecture/icons/
+#   https://commons.wikimedia.org/wiki/File:AWS_Simple_Icons_AWS_Cloud.svg
+#   https://github.com/RazrFalcon/svgcleaner
+
+# Download AppImageKit
+mkdir -p aws.AppDir/usr
+cat <<'EOF' > aws.AppDir/aws.desktop
+[Desktop Entry]
+Name=aws
+Exec=aws
+Icon=aws
+Type=Application
+Categories=Utility;ConsoleOnly;
+Terminal=true
+EOF
+curl -L https://github.com/AppImage/AppImageKit/releases/download/12/appimagetool-x86_64.AppImage -o appimagetool
+curl -L https://github.com/AppImage/AppImageKit/releases/download/12/AppRun-x86_64 -o aws.AppDir/AppRun
+chmod +x appimagetool aws.AppDir/AppRun
+cp aws.svg aws.AppDir/
+
+# Download and extract AWSCliv2
+curl https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -o aws.zip
+unzip aws.zip 'aws/dist/*'
+mv aws/dist aws.AppDir/usr/bin
+rmdir aws
+rm aws.zip
+
+# Package
+./appimagetool -n aws.AppDir
+
+# Reference:
+#   https://docs.appimage.org/packaging-guide/manual.html

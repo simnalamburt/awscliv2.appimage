@@ -1,6 +1,6 @@
 AWS CLI v2, in a single file
 ========
-[AWS CLI v2] in single file, powered by [AppImage].
+[AWS CLI v2] in a single file, powered by [AppImage].
 
 ```console
 $ ./aws --help
@@ -26,7 +26,7 @@ How to help
 --------
 - Ping AWS team to release an official AppImage distribution
 - Help me setup automated build for future AWS CLI v2 releases
-- Help me build binaries for the other CPU architectures, especially AArhc64
+- Help me build binaries for the other CPU architectures, especially AArch64
 - Share your experience in issues
 
 &nbsp;

@@ -18,7 +18,8 @@ the history and drama.
 Installation
 --------
 ```bash
-# TODO
+curl -L https://github.com/simnalamburt/awscliv2.appimage/releases/latest/download/aws-x86_64.AppImage -o aws
+chmod +x aws
 ```
 
 How to help

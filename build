@@ -1,16 +1,28 @@
 #!/bin/bash
 set -euo pipefail; IFS=$'\n\t'
 
+
+
+VERSION='2.1.14'
+B2SUM='fe01a5c205047b4e0d359ea851854b5e1d5ab1f23a044218f6924c67f2dd1810160d70d66ec07283ba5d68cf541a3c4ac4cf6d2f319df3d5fa188abeab93229d'
+
+
+
 # Reference: https://docs.appimage.org/packaging-guide/manual.html
 mkdir -p aws.AppDir/usr
 
 # Download AppImageKit
 curl -L https://github.com/AppImage/AppImageKit/releases/download/12/appimagetool-x86_64.AppImage -o appimagetool
 curl -L https://github.com/AppImage/AppImageKit/releases/download/12/AppRun-x86_64 -o aws.AppDir/AppRun
+b2sum -c <<'EOF'
+1ceddffea048787d8152cf1a9a2c7cd5eb588b6c3c74418ba5fffc28d4ac5cfddd480d8c4517a00e4b094f87f6989c81fdb4efe6e515f0d739bad8abcf72e820 ./appimagetool
+3ec76843fd90ebf34833e2e178efd1f22d0eacd8eb3508caeb3f7152e65fc7a2ea8b0d61c649290bad78eb0b164dc92df8a0a53478ed59cbd693876128810e9a ./aws.AppDir/AppRun
+EOF
 chmod +x appimagetool aws.AppDir/AppRun
 
 # Download and extract AWSCliv2
-curl https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -o aws.zip
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-${VERSION}.zip" -o aws.zip
+b2sum -c <<< "${B2SUM} ./aws.zip"
 unzip aws.zip 'aws/dist/*'
 mv aws/dist aws.AppDir/usr/bin
 

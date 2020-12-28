@@ -23,7 +23,7 @@ chmod +x appimagetool aws.AppDir/AppRun
 # Download and extract AWSCliv2
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-${VERSION}.zip" -o aws.zip
 b2sum -c <<< "${B2SUM} ./aws.zip"
-unzip aws.zip 'aws/dist/*'
+unzip -q aws.zip 'aws/dist/*'
 mv aws/dist aws.AppDir/usr/bin
 
 # Reference: https://wiki.archlinux.org/index.php/desktop_entries

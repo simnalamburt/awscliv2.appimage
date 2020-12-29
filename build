@@ -1,10 +1,37 @@
 #!/bin/bash
 set -euo pipefail; IFS=$'\n\t'
 
+help () {
+  cat <<-'EOF'
+build
+Scripts which packages AWS CLI v2 into an AppImage binary.
 
+Usage:
+  ./build <version>
+  ./build [-h|--help]
 
-VERSION='2.1.14'
-B2SUM='fe01a5c205047b4e0d359ea851854b5e1d5ab1f23a044218f6924c67f2dd1810160d70d66ec07283ba5d68cf541a3c4ac4cf6d2f319df3d5fa188abeab93229d'
+  <version>     Version of AWS CLI
+  -h, --help    Display this message
+
+Example:
+  ./build 2.0.0
+  ./build 2.1.14
+  ./build -h
+  ./build --help
+EOF
+}
+
+if (( $# != 1 )); then
+  help
+  exit 1
+fi
+
+if [[ "${1}" == '-h' || "${1}" == '--help' ]]; then
+  help
+  exit
+fi
+
+VERSION="${1}"
 
 
 
@@ -22,7 +49,6 @@ chmod +x appimagetool aws.AppDir/AppRun
 
 # Download and extract AWSCliv2
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-${VERSION}.zip" -o aws.zip
-b2sum -c <<< "${B2SUM} ./aws.zip"
 unzip -q aws.zip 'aws/dist/*'
 mv aws/dist aws.AppDir/usr/bin
 

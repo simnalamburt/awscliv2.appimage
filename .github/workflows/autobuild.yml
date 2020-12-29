@@ -6,7 +6,7 @@ on:
 
 jobs:
   check-version:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     outputs:
       remote: ${{ steps.latest_remote_tag.outputs.ver }}
       local: ${{ steps.latest_local_release.outputs.ver }}
@@ -30,7 +30,7 @@ jobs:
           )
 
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     needs: [check-version]
     if: |
       (needs.check-version.outputs.remote != needs.check-version.outputs.local) &&
@@ -38,25 +38,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install libfuse-dev -y
-      - name: Modify build file
-        run: |
-          REM_VER=${{ needs.check-version.outputs.remote }}
-
-          echo Updating version string
-          sed -i "s/VERSION\=.*/VERSION\='$REM_VER'/im" ./build
-          echo Removing checksum validation
-          sed -i '/${B2SUM}/d' ./build
-          echo Converting potential Windows styles
-          sed -i -e 's/\r$//' ./build
-      - name: Make executable
-        run: |
-          echo Loading FUSE library
-          modprobe fuse
-          echo Making script executable
-          chmod +x ./build
+        run: sudo apt-get install -y fuse
       - name: Build
-        run: ./build
+        run: ./build '${{ needs.check-version.outputs.remote }}'
       - name: Publish new release
         id: new_release
         uses: actions/create-release@v1

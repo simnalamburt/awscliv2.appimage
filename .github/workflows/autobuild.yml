@@ -1,0 +1,94 @@
+name: Autobuild new release
+on:
+  push:
+  schedule:
+    - cron: '0 */1 * * *'
+
+jobs:
+  try-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install git unzip curl jq libfuse-dev -y
+      - name: Get latest tag
+        id: latest_remote_tag
+        run: |
+          echo ::set-output name=ver::$( \
+            curl -sL https://api.github.com/repos/aws/aws-cli/git/refs/tags | \
+            jq --raw-output '.[-1].ref' | \
+            grep -Eo '[0-9]+.[0-9]+.[0-9]+' \
+          )
+      - name: Check local release
+        id: latest_local_release
+        run: |
+          echo ::set-output name=ver::$( \
+            curl -sL https://api.github.com/repos/Seia-Soto/awscliv2.appimage-autobuild/releases/latest | \
+            jq --raw-output '.tag_name' | \
+            grep -Eo '[0-9]+.[0-9]+.[0-9]+' \
+          )
+      - name: Determine if build is required
+        run: |
+          REM_VER=${{steps.latest_remote_tag.outputs.ver}}
+          LOC_VER=${{steps.latest_local_release.outputs.ver}}
+
+          function not_req {
+            echo "❌ Additional build is not required!"
+
+            exit 1
+          }
+
+          if [[ "$REM_VER" != 2* ]]; then
+            echo "ERROR: The remote version env indicates that the major version is not 2.x."
+
+            not_req
+          fi
+          if [ "$LOC_VER" == "$REM_VER" ]; then
+            echo "ERROR: The version crawled from the remote and local release is same."
+
+            not_req
+          fi
+      - name: Clone simnalamburt/awscliv2.appimage repository
+        run: git clone https://github.com/simnalamburt/awscliv2.appimage.git appimage-build
+      - name: Copy build script
+        run: cat ./appimage-build/build > ./build.sh
+      - name: Modify build file
+        run: |
+          REM_VER=${{ steps.latest_remote_tag.outputs.ver }}
+
+          echo Updating version string
+          sed -i "s/VERSION\=.*/VERSION\='$REM_VER'/im" ./build.sh
+          echo Removing checksum validation
+          sed -i '/${B2SUM}/d' ./build.sh
+          echo Converting potential Windows styles
+          sed -i -e 's/\r$//' ./build.sh
+      - name: Make executable
+        run: |
+          echo Loading FUSE library
+          modprobe fuse
+          echo Making script executable
+          chmod +x ./build.sh
+      - name: Build
+        run: ./build.sh
+      - name: Publish new release
+        id: new_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.latest_remote_tag.outputs.ver }}
+          release_name: Build ${{ steps.latest_remote_tag.outputs.ver }}
+          body: |
+            This build is automated via GitHub Actions.
+            If you find any errors, please open an issue and let me know.
+          draft: false
+          prerelease: false
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.new_release.outputs.upload_url }}
+          asset_path: ./aws-x86_64.AppImage
+          asset_name: aws-x86_64.AppImage
+          asset_content_type: application/zip

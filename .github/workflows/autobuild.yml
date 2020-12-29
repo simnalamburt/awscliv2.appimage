@@ -68,7 +68,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: v${{ needs.check-version.outputs.remote }}
-          release_name: Build ${{ needs.check-version.outputs.remote }}
+          release_name: v${{ needs.check-version.outputs.remote }}
           body: |
             This build is automated via GitHub Actions.
             If you find any errors, please open an issue and let me know.

@@ -12,8 +12,6 @@ jobs:
       local: ${{ steps.latest_local_release.outputs.ver }}
     steps:
       - uses: actions/checkout@v2
-      - name: Install dependencies
-        run: bash ./scripts/autobuild/install-deps.sh
       - name: Get latest tag
         id: latest_remote_tag
         run: |
@@ -41,26 +39,24 @@ jobs:
       - uses: actions/checkout@v2
       - name: Install dependencies
         run: bash ./scripts/autobuild/install-deps.sh
-      - name: Copy build script
-        run: cat ./build > ./build.sh
       - name: Modify build file
         run: |
           REM_VER=${{ needs.check-version.outputs.remote }}
 
           echo Updating version string
-          sed -i "s/VERSION\=.*/VERSION\='$REM_VER'/im" ./build.sh
+          sed -i "s/VERSION\=.*/VERSION\='$REM_VER'/im" ./build
           echo Removing checksum validation
-          sed -i '/${B2SUM}/d' ./build.sh
+          sed -i '/${B2SUM}/d' ./build
           echo Converting potential Windows styles
-          sed -i -e 's/\r$//' ./build.sh
+          sed -i -e 's/\r$//' ./build
       - name: Make executable
         run: |
           echo Loading FUSE library
           modprobe fuse
           echo Making script executable
-          chmod +x ./build.sh
+          chmod +x ./build
       - name: Build
-        run: ./build.sh
+        run: ./build
       - name: Publish new release
         id: new_release
         uses: actions/create-release@v1

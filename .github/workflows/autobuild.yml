@@ -1,16 +1,19 @@
-name: Autobuild new release
+name: Release watchtower
 on:
   push:
   schedule:
     - cron: '0 */1 * * *'
 
 jobs:
-  try-build:
+  check-version:
     runs-on: ubuntu-latest
+    outputs:
+      remote: ${{ steps.latest_remote_tag.outputs.ver }}
+      local: ${{ steps.latest_local_release.outputs.ver }}
     steps:
       - uses: actions/checkout@v2
       - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install git unzip curl jq libfuse-dev -y
+        run: bash ./scripts/autobuild/install-deps.sh
       - name: Get latest tag
         id: latest_remote_tag
         run: |
@@ -23,38 +26,26 @@ jobs:
         id: latest_local_release
         run: |
           echo ::set-output name=ver::$( \
-            curl -sL https://api.github.com/repos/Seia-Soto/awscliv2.appimage-autobuild/releases/latest | \
+            curl -sL "https://api.github.com/repos/${{ github.repository }}/releases/latest" | \
             jq --raw-output '.tag_name' | \
             grep -Eo '[0-9]+.[0-9]+.[0-9]+' \
           )
-      - name: Determine if build is required
-        run: |
-          REM_VER=${{steps.latest_remote_tag.outputs.ver}}
-          LOC_VER=${{steps.latest_local_release.outputs.ver}}
 
-          function not_req {
-            echo "❌ Additional build is not required!"
-
-            exit 1
-          }
-
-          if [[ "$REM_VER" != 2* ]]; then
-            echo "ERROR: The remote version env indicates that the major version is not 2.x."
-
-            not_req
-          fi
-          if [ "$LOC_VER" == "$REM_VER" ]; then
-            echo "ERROR: The version crawled from the remote and local release is same."
-
-            not_req
-          fi
-      - name: Clone simnalamburt/awscliv2.appimage repository
-        run: git clone https://github.com/simnalamburt/awscliv2.appimage.git appimage-build
+  build:
+    runs-on: ubuntu-latest
+    needs: [check-version]
+    if: |
+      (needs.check-version.outputs.remote != needs.check-version.outputs.local) &&
+      startsWith(needs.check-version.outputs.remote, '2.')
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install dependencies
+        run: bash ./scripts/autobuild/install-deps.sh
       - name: Copy build script
-        run: cat ./appimage-build/build > ./build.sh
+        run: cat ./build > ./build.sh
       - name: Modify build file
         run: |
-          REM_VER=${{ steps.latest_remote_tag.outputs.ver }}
+          REM_VER=${{ needs.check-version.outputs.remote }}
 
           echo Updating version string
           sed -i "s/VERSION\=.*/VERSION\='$REM_VER'/im" ./build.sh
@@ -76,8 +67,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ steps.latest_remote_tag.outputs.ver }}
-          release_name: Build ${{ steps.latest_remote_tag.outputs.ver }}
+          tag_name: v${{ needs.check-version.outputs.remote }}
+          release_name: Build ${{ needs.check-version.outputs.remote }}
           body: |
             This build is automated via GitHub Actions.
             If you find any errors, please open an issue and let me know.

@@ -24,8 +24,7 @@ chmod +x aws
 
 How to help
 --------
-- Ping AWS team to release an official AppImage distribution
-- Help me setup automated build for future AWS CLI v2 releases
+- Ping AWS team to release an official PyPI distribution
 - Help me build binaries for the other CPU architectures, especially AArch64
 - Share your experience in issues
 

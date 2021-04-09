@@ -68,8 +68,8 @@ jobs:
       - name: Prepare environment to emulate non-x86 machines
         if: matrix.arch != 'x86_64'
         run: |
-          apt-get update
-          apt-get install qemu-user-static binfmt-support -y
+          sudo apt-get update
+          sudo apt-get install qemu-user-static binfmt-support -y
       - uses: uraimo/run-on-arch-action@v2.0.5
         name: Build for non-x86 machines
         if: matrix.arch != 'x86_64'

@@ -79,7 +79,6 @@ jobs:
           run: |
             apt-get update
             apt-get install fuse curl unzip -y
-            echo "Running on $(uname -m)"
             ./build "${{ needs.prepare.outputs.remote }}" "${{ matrix.arch }}"
       - name: Set filename
         id: filename

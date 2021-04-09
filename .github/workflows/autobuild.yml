@@ -60,11 +60,11 @@ jobs:
       startsWith(needs.prepare.outputs.remote, '2.')
     steps:
       - uses: actions/checkout@v2
-      - name: Install dependencies
-        run: sudo apt-get install -y fuse
       - name: Build on x86 machine
         if: matrix.arch == 'x86_64'
-        run: ./build '${{ needs.prepare.outputs.remote }}'
+        run: |
+          sudo apt-get install -y fuse
+          ./build '${{ needs.prepare.outputs.remote }}'
       - uses: uraimo/run-on-arch-action@v2.0.5
         name: Build for non-x86 machines
         if: matrix.arch != 'x86_64'
@@ -83,3 +83,4 @@ jobs:
           upload_url: ${{ needs.prepare.outputs.upload_url }}
           asset_path: "./aws-$(uname -m).AppImage"
           asset_name: "./aws-$(uname -m).AppImage"
+          asset_content_type: application/zip

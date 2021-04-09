@@ -41,8 +41,11 @@ jobs:
         run: |
           git config user.name "GitHub Actions"
           git config user.email noreply@github.com
-          git tag "v${{ needs.check-version.outputs.remote }}"
-          git push origin "v${{ needs.check-version.outputs.remote }}"
+
+          if [ $(git tag -l "v${{ needs.check-version.outputs.remote }}") ]; then
+            git tag "v${{ needs.check-version.outputs.remote }}"
+            git push origin "v${{ needs.check-version.outputs.remote }}"
+          fi
       - name: Install dependencies
         run: sudo apt-get install -y fuse
       - name: Build

@@ -60,26 +60,11 @@ jobs:
       startsWith(needs.prepare.outputs.remote, '2.')
     steps:
       - uses: actions/checkout@v2
-      - name: Build for x86 machine
+      - name: Build
         if: matrix.arch == 'x86_64'
         run: |
           sudo apt-get install fuse -y --no-install-recommends
-          ./build '${{ needs.prepare.outputs.remote }}'
-      - name: Prepare environment to emulate non-x86 machines
-        if: matrix.arch != 'x86_64'
-        run: |
-          sudo apt-get update
-          sudo apt-get install qemu-user-static binfmt-support -y
-      - uses: uraimo/run-on-arch-action@v2.0.5
-        name: Build for non-x86 machines
-        if: matrix.arch != 'x86_64'
-        with:
-          arch: ${{ matrix.arch }}
-          distro: ubuntu20.04
-          run: |
-            apt-get update
-            apt-get install fuse curl unzip -y
-            ./build "${{ needs.prepare.outputs.remote }}" "${{ matrix.arch }}"
+          ./build '${{ needs.prepare.outputs.remote }}' '${{ matrix.arch }}'
       - name: Set filename
         id: filename
         run: echo "::set-output name=value::./aws-$(uname -m).AppImage"

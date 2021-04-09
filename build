@@ -46,7 +46,7 @@ fi
 mkdir -p aws.AppDir/usr
 
 # Download AppImageKit
-curl -L "https://github.com/AppImage/AppImageKit/releases/download/12/appimagetool-${ARCH}.AppImage" -o appimagetool
+curl -L "https://github.com/AppImage/AppImageKit/releases/download/12/appimagetool-$(uname -m).AppImage" -o appimagetool
 curl -L "https://github.com/AppImage/AppImageKit/releases/download/12/AppRun-${ARCH}" -o aws.AppDir/AppRun
 chmod +x appimagetool aws.AppDir/AppRun
 

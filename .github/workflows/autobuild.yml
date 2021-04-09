@@ -60,7 +60,7 @@ jobs:
       startsWith(needs.prepare.outputs.remote, '2.')
     steps:
       - uses: actions/checkout@v2
-      - name: Build on x86 machine
+      - name: Build for x86 machine
         if: matrix.arch == 'x86_64'
         run: |
           sudo apt-get install -y fuse
@@ -75,12 +75,15 @@ jobs:
             apt-get update
             apt-get install fuse curl unzip -y
             ./build "${{ needs.prepare.outputs.remote }}" "${{ matrix.arch }}"
+      - name: Set filename
+        id: filename
+        run: echo "::set-output name=value::./aws-$(uname -m).AppImage"
       - name: Upload Release Asset
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.prepare.outputs.upload_url }}
-          asset_path: ./aws-$(uname -m).AppImage
-          asset_name: ./aws-$(uname -m).AppImage
+          asset_path: ${{ steps.filename.outputs.value }}
+          asset_name: ${{ steps.filename.outputs.value }}
           asset_content_type: application/zip

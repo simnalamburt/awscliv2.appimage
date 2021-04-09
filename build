@@ -48,6 +48,7 @@ mkdir -p aws.AppDir/usr
 # Download AppImageKit
 curl -L "https://github.com/AppImage/AppImageKit/releases/download/12/appimagetool-$(uname -m).AppImage" -o appimagetool
 curl -L "https://github.com/AppImage/AppImageKit/releases/download/12/AppRun-${ARCH}" -o aws.AppDir/AppRun
+curl -L "https://github.com/AppImage/AppImageKit/releases/download/12/runtime-${ARCH}" -o runtime
 chmod +x appimagetool aws.AppDir/AppRun
 
 # Download and extract AWSCliv2
@@ -105,4 +106,4 @@ d="m44.629 38.729-1-.365c-.988-.377-1.392-.779-1.392-1.572 0-.988.611-1.34
 EOF
 
 # Package
-./appimagetool -n aws.AppDir
+./appimagetool -n aws.AppDir --runtime-file ./runtime

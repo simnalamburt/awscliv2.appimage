@@ -66,13 +66,13 @@ jobs:
           ./build '${{ needs.prepare.outputs.remote }}' '${{ matrix.arch }}'
       - name: Set filename
         id: filename
-        run: echo "::set-output name=value::./aws-${{ matrix.arch }}.AppImage"
+        run: echo "::set-output name=value::aws-${{ matrix.arch }}.AppImage"
       - name: Upload Release Asset
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.prepare.outputs.upload_url }}
-          asset_path: ${{ steps.filename.outputs.value }}
+          asset_path: ./${{ steps.filename.outputs.value }}
           asset_name: ${{ steps.filename.outputs.value }}
           asset_content_type: application/zip

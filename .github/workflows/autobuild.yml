@@ -72,8 +72,8 @@ jobs:
           arch: ${{ matrix.arch }}
           distro: ubuntu20.04
           run: |
-            sudo apt-get update
-            sudo apt-get install fuse curl -y
+            apt-get update
+            apt-get install fuse curl -y
             ./build "${{ needs.prepare.outputs.remote }}" "${{ matrix.arch }}"
       - name: Upload Release Asset
         uses: actions/upload-release-asset@v1
@@ -82,3 +82,4 @@ jobs:
         with:
           upload_url: ${{ needs.prepare.outputs.upload_url }}
           asset_path: "./aws-$(uname -m).AppImage"
+          asset_name: "./aws-$(uname -m).AppImage"

@@ -11,7 +11,7 @@ Usage:
   ./build [-h|--help]
 
   <version>     Version of AWS CLI
-  [arch]        Architecture to build, default to x86_64
+  [arch]        Architecture to build, default to your arch
   -h, --help    Display this message
 
 Example:
@@ -33,7 +33,7 @@ if [[ "${1}" == '-h' || "${1}" == '--help' ]]; then
 fi
 
 VERSION="${1}"
-ARCH="${2:-x86_64}"
+ARCH="${2:-$(uname -m)}"
 
 echo "AWS CLI v2, in a single file - ${VERSION} ${ARCH}"
 

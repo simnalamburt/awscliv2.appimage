@@ -36,30 +36,32 @@ jobs:
       (needs.check-version.outputs.remote != needs.check-version.outputs.local) &&
       startsWith(needs.check-version.outputs.remote, '2.')
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      – name: Create new tag and push
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email noreply@github.com
+          git tag "v${{ needs.check-version.outputs.remote }}"
+          git push origin "v${{ needs.check-version.outputs.remote }}"
       - name: Install dependencies
         run: sudo apt-get install -y fuse
       - name: Build
-        run: ./build '${{ needs.check-version.outputs.remote }}'
-      - name: Publish new release
-        id: new_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ./build '${{ needs.check-version.outputs.remote }}' x86_64
+          ./build '${{ needs.check-version.outputs.remote }}' aarch64
+      - name: Publish release
+        uses: softprops/action-gh-release@v1
         with:
+          name: v${{ needs.check-version.outputs.remote }}
           tag_name: v${{ needs.check-version.outputs.remote }}
-          release_name: v${{ needs.check-version.outputs.remote }}
           body: |
             This build is automated via GitHub Actions.
             If you find any errors, please open an issue and let me know.
           draft: false
           prerelease: false
-      - name: Upload Release Asset
-        uses: actions/upload-release-asset@v1
+          files: |
+            ./aws-x86_64.AppImage
+            ./aws-aarch64.AppImage
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.new_release.outputs.upload_url }}
-          asset_path: ./aws-x86_64.AppImage
-          asset_name: aws-x86_64.AppImage
-          asset_content_type: application/zip

@@ -73,7 +73,7 @@ jobs:
           distro: ubuntu20.04
           run: |
             apt-get update
-            apt-get install fuse curl -y
+            apt-get install fuse curl unzip -y
             ./build "${{ needs.prepare.outputs.remote }}" "${{ matrix.arch }}"
       - name: Upload Release Asset
         uses: actions/upload-release-asset@v1
@@ -81,6 +81,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.prepare.outputs.upload_url }}
-          asset_path: "./aws-$(uname -m).AppImage"
-          asset_name: "./aws-$(uname -m).AppImage"
+          asset_path: ./aws-$(uname -m).AppImage
+          asset_name: ./aws-$(uname -m).AppImage
           asset_content_type: application/zip

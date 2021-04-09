@@ -36,9 +36,8 @@ jobs:
       (needs.check-version.outputs.remote != needs.check-version.outputs.local) &&
       startsWith(needs.check-version.outputs.remote, '2.')
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
-      – name: Create new tag and push
+      - uses: actions/checkout@v2
+      - name: Create new tag and push
         run: |
           git config user.name "GitHub Actions"
           git config user.email noreply@github.com

@@ -54,7 +54,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ARCH: ['x86_64', 'aarch64']
+        arch: ['x86_64', 'aarch64']
     if: |
       (needs.prepare.outputs.remote != needs.prepare.outputs.local) &&
       startsWith(needs.prepare.outputs.remote, '2.')
@@ -63,8 +63,13 @@ jobs:
       - name: Build for x86 machine
         if: matrix.arch == 'x86_64'
         run: |
-          sudo apt-get install -y fuse
+          sudo apt-get install fuse -y --no-install-recommends
           ./build '${{ needs.prepare.outputs.remote }}'
+      - name: Prepare environment to emulate non-x86 machines
+        if: matrix.arch != 'x86_64'
+        run: |
+          apt-get update
+          apt-get install qemu-user-static binfmt-support -y
       - uses: uraimo/run-on-arch-action@v2.0.5
         name: Build for non-x86 machines
         if: matrix.arch != 'x86_64'
@@ -73,7 +78,7 @@ jobs:
           distro: ubuntu20.04
           run: |
             apt-get update
-            apt-get install fuse curl unzip -y
+            apt-get install fuse curl unzip -y --no-install-recommends
             ./build "${{ needs.prepare.outputs.remote }}" "${{ matrix.arch }}"
       - name: Set filename
         id: filename

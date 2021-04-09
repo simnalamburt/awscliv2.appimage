@@ -61,7 +61,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Build
-        if: matrix.arch == 'x86_64'
         run: |
           sudo apt-get install fuse -y --no-install-recommends
           ./build '${{ needs.prepare.outputs.remote }}' '${{ matrix.arch }}'

@@ -78,7 +78,8 @@ jobs:
           distro: ubuntu20.04
           run: |
             apt-get update
-            apt-get install fuse curl unzip -y --no-install-recommends
+            apt-get install fuse curl unzip -y
+            echo "Running on $(uname -m)"
             ./build "${{ needs.prepare.outputs.remote }}" "${{ matrix.arch }}"
       - name: Set filename
         id: filename

@@ -1,4 +1,5 @@
 name: Release watchtower
+
 on:
   push:
   schedule:

@@ -1,15 +1,17 @@
 name: Release watchtower
+
 on:
   push:
   schedule:
     - cron: '0 */1 * * *'
 
 jobs:
-  check-version:
+  prepare:
     runs-on: ubuntu-20.04
     outputs:
       remote: ${{ steps.latest_remote_tag.outputs.ver }}
       local: ${{ steps.latest_local_release.outputs.ver }}
+      upload_url: ${{ steps.new_release.outputs.upload_url }}
     steps:
       - name: Get latest tag
         id: latest_remote_tag
@@ -27,38 +29,50 @@ jobs:
             jq --raw-output '.tag_name' | \
             grep -Eo '[0-9]+.[0-9]+.[0-9]+' \
           )
-
-  build:
-    runs-on: ubuntu-20.04
-    needs: [check-version]
-    if: |
-      (needs.check-version.outputs.remote != needs.check-version.outputs.local) &&
-      startsWith(needs.check-version.outputs.remote, '2.')
-    steps:
-      - uses: actions/checkout@v2
-      - name: Install dependencies
-        run: sudo apt-get install -y fuse
-      - name: Build
-        run: ./build '${{ needs.check-version.outputs.remote }}'
       - name: Publish new release
+        if: |
+          (steps.latest_remote_tag.outputs.ver != steps.latest_local_release.outputs.ver) &&
+          startsWith(steps.latest_remote_tag.outputs.ver, '2.')
         id: new_release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: v${{ needs.check-version.outputs.remote }}
-          release_name: v${{ needs.check-version.outputs.remote }}
+          tag_name: v${{ steps.latest_remote_tag.outputs.ver }}
+          release_name: v${{ steps.latest_remote_tag.outputs.ver }}
           body: |
             This build is automated via GitHub Actions.
             If you find any errors, please open an issue and let me know.
+
+            > Outputs will be available later because we're building AppImage sequentially by arch after publishing the release.
           draft: false
           prerelease: false
+
+  build:
+    runs-on: ubuntu-20.04
+    needs: [prepare]
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: ['x86_64', 'aarch64']
+    if: |
+      (needs.prepare.outputs.remote != needs.prepare.outputs.local) &&
+      startsWith(needs.prepare.outputs.remote, '2.')
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build
+        run: |
+          sudo apt-get install fuse -y --no-install-recommends
+          ./build '${{ needs.prepare.outputs.remote }}' '${{ matrix.arch }}'
+      - name: Set filename
+        id: filename
+        run: echo "::set-output name=value::aws-${{ matrix.arch }}.AppImage"
       - name: Upload Release Asset
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.new_release.outputs.upload_url }}
-          asset_path: ./aws-x86_64.AppImage
-          asset_name: aws-x86_64.AppImage
+          upload_url: ${{ needs.prepare.outputs.upload_url }}
+          asset_path: ./${{ steps.filename.outputs.value }}
+          asset_name: ${{ steps.filename.outputs.value }}
           asset_content_type: application/zip

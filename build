@@ -7,21 +7,22 @@ build
 Scripts which packages AWS CLI v2 into an AppImage binary.
 
 Usage:
-  ./build <version>
+  ./build <version> <arch>
   ./build [-h|--help]
 
   <version>     Version of AWS CLI
+  <arch>        Architecture to build, default to your arch
   -h, --help    Display this message
 
 Example:
-  ./build 2.0.0
-  ./build 2.1.14
+  ./build 2.0.0 x86_64
+  ./build 2.1.14 aarch64
   ./build -h
   ./build --help
 EOF
 }
 
-if (( $# != 1 )); then
+if (( $# == 0 )); then
   help
   exit 1
 fi
@@ -32,23 +33,26 @@ if [[ "${1}" == '-h' || "${1}" == '--help' ]]; then
 fi
 
 VERSION="${1}"
+ARCH="${2:-$(uname -m)}"
 
+echo "AWS CLI v2, in a single file - ${VERSION} ${ARCH}"
 
+if [[ "$ARCH" != 'x86_64' && "$ARCH" != 'aarch64' ]]; then
+  echo 'Unsupported architecture specified! Arch should be x86_64 or aarch64.'
+  exit 1
+fi
 
 # Reference: https://docs.appimage.org/packaging-guide/manual.html
 mkdir -p aws.AppDir/usr
 
 # Download AppImageKit
-curl -L https://github.com/AppImage/AppImageKit/releases/download/12/appimagetool-x86_64.AppImage -o appimagetool
-curl -L https://github.com/AppImage/AppImageKit/releases/download/12/AppRun-x86_64 -o aws.AppDir/AppRun
-b2sum -c <<'EOF'
-1ceddffea048787d8152cf1a9a2c7cd5eb588b6c3c74418ba5fffc28d4ac5cfddd480d8c4517a00e4b094f87f6989c81fdb4efe6e515f0d739bad8abcf72e820 ./appimagetool
-3ec76843fd90ebf34833e2e178efd1f22d0eacd8eb3508caeb3f7152e65fc7a2ea8b0d61c649290bad78eb0b164dc92df8a0a53478ed59cbd693876128810e9a ./aws.AppDir/AppRun
-EOF
+curl -L "https://github.com/AppImage/AppImageKit/releases/download/12/appimagetool-$(uname -m).AppImage" -o appimagetool
+curl -L "https://github.com/AppImage/AppImageKit/releases/download/12/AppRun-${ARCH}" -o aws.AppDir/AppRun
+curl -L "https://github.com/AppImage/AppImageKit/releases/download/12/runtime-${ARCH}" -o runtime
 chmod +x appimagetool aws.AppDir/AppRun
 
 # Download and extract AWSCliv2
-curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-${VERSION}.zip" -o aws.zip
+curl "https://awscli.amazonaws.com/awscli-exe-linux-${ARCH}-${VERSION}.zip" -o aws.zip
 unzip -q aws.zip 'aws/dist/*'
 mv aws/dist aws.AppDir/usr/bin
 
@@ -102,4 +106,4 @@ d="m44.629 38.729-1-.365c-.988-.377-1.392-.779-1.392-1.572 0-.988.611-1.34
 EOF
 
 # Package
-./appimagetool -n aws.AppDir
+./appimagetool -n aws.AppDir --runtime-file ./runtime

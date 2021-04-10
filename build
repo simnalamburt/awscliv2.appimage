@@ -7,7 +7,7 @@ build
 Scripts which packages AWS CLI v2 into an AppImage binary.
 
 Usage:
-  ./build <version> [arch]
+  ./build <version> <arch>
   ./build [-h|--help]
 
   <version>     Version of AWS CLI

@@ -11,7 +11,7 @@ Usage:
   ./build [-h|--help]
 
   <version>     Version of AWS CLI
-  [arch]        Architecture to build, default to your arch
+  <arch>        Architecture to build, default to your arch
   -h, --help    Display this message
 
 Example:

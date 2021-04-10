@@ -38,7 +38,7 @@ ARCH="${2:-$(uname -m)}"
 echo "AWS CLI v2, in a single file - ${VERSION} ${ARCH}"
 
 if [[ $ARCH != 'x86_64' && $ARCH != 'aarch64' ]]; then
-  echo Unsupported architecture specified! Arch should be x86_64 or aarch64.
+  echo 'Unsupported architecture specified! Arch should be x86_64 or aarch64.'
   exit 1
 fi
 

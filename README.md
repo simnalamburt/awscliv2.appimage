@@ -20,6 +20,7 @@ Installation
 ```bash
 curl -L https://github.com/simnalamburt/awscliv2.appimage/releases/latest/download/aws-x86_64.AppImage -o aws
 chmod +x aws
+ln -s aws aws_completer
 ```
 
 How to help

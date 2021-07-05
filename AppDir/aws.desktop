@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=aws
+Exec=aws
+Icon=aws
+Type=Application
+Categories=Utility;ConsoleOnly;
+Terminal=true
+# Reference: https://wiki.archlinux.org/index.php/desktop_entries

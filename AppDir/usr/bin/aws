@@ -1,0 +1,10 @@
+#!/bin/bash
+set -euo pipefail; IFS=$'\n\t'
+
+DIR=$(readlink -e lib/aws)
+cd "${OWD}"
+if [[ "$(basename "${ARGV0}")" == "aws_completer" ]]; then
+  exec "${DIR}/aws_completer"
+else
+  exec "${DIR}/aws"
+fi

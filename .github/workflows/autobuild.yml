@@ -9,37 +9,34 @@ jobs:
   prepare:
     runs-on: ubuntu-20.04
     outputs:
-      version: ${{ steps.latest_remote_tag.outputs.ver }}
-      need_build: ${{ (steps.latest_remote_tag.outputs.ver != steps.latest_local_release.outputs.ver) && startsWith(steps.latest_remote_tag.outputs.ver, '2.') }}
+      version: ${{ steps.latest.outputs.ver }}
+      need_build: ${{ (steps.check.outputs.exists == 'false') && startsWith(steps.latest.outputs.ver, '2.') }}
       upload_url: ${{ steps.new_release.outputs.upload_url }}
     steps:
       - name: Get latest tag
-        id: latest_remote_tag
+        id: latest
         run: |
           VERSION=$(
             curl -sL 'https://api.github.com/repos/aws/aws-cli/git/refs/tags' |
             jq --raw-output '.[-1].ref' |
             grep -Eo '[0-9]+.[0-9]+.[0-9]+')
           echo "::set-output name=ver::${VERSION}"
-      - name: Check local release
-        id: latest_local_release
-        run: |
-          VERSION=$(
-            curl -sL 'https://api.github.com/repos/${{ github.repository }}/releases/latest' |
-            jq --raw-output '.tag_name' |
-            grep -Eo '[0-9]+.[0-9]+.[0-9]+')
-          echo "::set-output name=ver::${VERSION}"
+      - name: Check if the tag already exists
+        uses: mukunku/tag-exists-action@v1.0.0
+        id: check
+        with:
+          tag: v${{ steps.latest.outputs.ver }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Publish new release
-        if: |
-          (steps.latest_remote_tag.outputs.ver != steps.latest_local_release.outputs.ver) &&
-          startsWith(steps.latest_remote_tag.outputs.ver, '2.')
+        if: (steps.check.outputs.exists == 'false') && startsWith(steps.latest.outputs.ver, '2.')
         id: new_release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: v${{ steps.latest_remote_tag.outputs.ver }}
-          release_name: v${{ steps.latest_remote_tag.outputs.ver }}
+          tag_name: v${{ steps.latest.outputs.ver }}
+          release_name: v${{ steps.latest.outputs.ver }}
           body: |
             This build is automated via GitHub Actions.
             If you find any errors, please open an issue and let me know.

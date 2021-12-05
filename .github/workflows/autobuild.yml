@@ -9,8 +9,8 @@ jobs:
   prepare:
     runs-on: ubuntu-20.04
     outputs:
-      remote: ${{ steps.latest_remote_tag.outputs.ver }}
-      local: ${{ steps.latest_local_release.outputs.ver }}
+      version: ${{ steps.latest_remote_tag.outputs.ver }}
+      need_build: ${{ (steps.latest_remote_tag.outputs.ver != steps.latest_local_release.outputs.ver) && startsWith(steps.latest_remote_tag.outputs.ver, '2.') }}
       upload_url: ${{ steps.new_release.outputs.upload_url }}
     steps:
       - name: Get latest tag
@@ -55,15 +55,13 @@ jobs:
       fail-fast: false
       matrix:
         arch: ['x86_64', 'aarch64']
-    if: |
-      (needs.prepare.outputs.remote != needs.prepare.outputs.local) &&
-      startsWith(needs.prepare.outputs.remote, '2.')
+    if: needs.prepare.outputs.need_build == 'true'
     steps:
       - uses: actions/checkout@v2
       - name: Build
         run: |
           sudo apt-get install fuse -y --no-install-recommends
-          ./build '${{ needs.prepare.outputs.remote }}' '${{ matrix.arch }}'
+          ./build '${{ needs.prepare.outputs.version }}' '${{ matrix.arch }}'
       - name: Set filename
         id: filename
         run: echo '::set-output name=value::aws-${{ matrix.arch }}.AppImage'

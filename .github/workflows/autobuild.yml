@@ -6,12 +6,11 @@ on:
     - cron: '0 */1 * * *'
 
 jobs:
-  prepare:
+  check:
     runs-on: ubuntu-20.04
     outputs:
       version: ${{ steps.latest.outputs.ver }}
       need_build: ${{ (steps.check.outputs.exists == 'false') && startsWith(steps.latest.outputs.ver, '2.') }}
-      upload_url: ${{ steps.new_release.outputs.upload_url }}
     steps:
       - name: Get latest tag
         id: latest
@@ -28,15 +27,23 @@ jobs:
           tag: v${{ steps.latest.outputs.ver }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  prepare:
+    runs-on: ubuntu-20.04
+    needs: [check]
+    if: needs.check.outputs.need_build == 'true'
+    outputs:
+      version: ${{ needs.check.outputs.version }}
+      upload_url: ${{ steps.new_release.outputs.upload_url }}
+    steps:
       - name: Publish new release
-        if: (steps.check.outputs.exists == 'false') && startsWith(steps.latest.outputs.ver, '2.')
         id: new_release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: v${{ steps.latest.outputs.ver }}
-          release_name: v${{ steps.latest.outputs.ver }}
+          tag_name: v${{ needs.check.outputs.version }}
+          release_name: v${{ needs.check.outputs.version }}
           body: |
             This build is automated via GitHub Actions.
             If you find any errors, please open an issue and let me know.
@@ -52,7 +59,6 @@ jobs:
       fail-fast: false
       matrix:
         arch: ['x86_64', 'aarch64']
-    if: needs.prepare.outputs.need_build == 'true'
     steps:
       - uses: actions/checkout@v2
       - name: Build

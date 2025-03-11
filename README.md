@@ -23,12 +23,6 @@ chmod +x aws
 ln -s aws aws_completer
 ```
 
-How to help
---------
-- Ping AWS team to release an official PyPI distribution
-- Help me build binaries for the other CPU architectures, especially AArch64
-- Share your experience in issues
-
 &nbsp;
 
 --------

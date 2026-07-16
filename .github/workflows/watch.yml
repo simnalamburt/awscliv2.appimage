@@ -18,10 +18,10 @@ on:
         type: boolean
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: release-${{ github.workflow }}-${{ inputs.version || 'latest' }}
+  group: release-watchtower-${{ inputs.version || 'latest' }}
   cancel-in-progress: false
 
 jobs:
@@ -31,25 +31,25 @@ jobs:
       version: ${{ steps.release.outputs.version }}
       need_build: ${{ steps.release.outputs.need_build }}
     steps:
-      - name: Find version and inspect release
+      - name: Select version and inspect release assets
         id: release
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
           REQUESTED_VERSION: ${{ inputs.version }}
           FORCE: ${{ inputs.force }}
         run: |
-          VERSION="${REQUESTED_VERSION#v}"
-          if [[ -z "$VERSION" ]]; then
-            VERSION=$(gh api 'repos/aws/aws-cli/tags?per_page=1' --jq '.[0].name')
+          version="${REQUESTED_VERSION#v}"
+          if [[ -z "$version" ]]; then
+            version=$(gh api 'repos/aws/aws-cli/tags?per_page=1' --jq '.[0].name')
           fi
 
-          if [[ ! "$VERSION" =~ ^2\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Invalid AWS CLI version: $VERSION" >&2
+          if [[ ! "$version" =~ ^2\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid AWS CLI version: $version" >&2
             exit 1
           fi
 
           ASSETS_COMPLETE=false
-          if RELEASE=$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/v${VERSION}" 2>/dev/null); then
+          if RELEASE=$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/v${version}" 2>/dev/null); then
             if jq -e '
               [.assets[] | select(.size > 0) | .name] | sort ==
               ["aws-aarch64.AppImage", "aws-x86_64.AppImage"]
@@ -58,58 +58,59 @@ jobs:
             fi
           fi
 
-          NEED_BUILD=false
+          need_build=false
           if [[ "${FORCE:-false}" == 'true' || "$ASSETS_COMPLETE" != 'true' ]]; then
-            NEED_BUILD=true
+            need_build=true
           fi
 
-          echo "AWS CLI version: $VERSION"
+          echo "AWS CLI version: ${version}"
           echo "Release assets complete: $ASSETS_COMPLETE"
-          echo "Build required: $NEED_BUILD"
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "need_build=$NEED_BUILD" >> "$GITHUB_OUTPUT"
-
-  prepare:
-    runs-on: ubuntu-latest
-    needs: [check]
-    if: needs.check.outputs.need_build == 'true'
-    steps:
-      - name: Create or reuse release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ needs.check.outputs.version }}
-        run: |
-          if gh release view "v${VERSION}" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            echo "Reusing release v${VERSION}"
-          else
-            gh release create "v${VERSION}" \
-              --repo "$GITHUB_REPOSITORY" \
-              --title "v${VERSION}" \
-              --notes 'This build is automated via GitHub Actions. If you find any errors, please open an issue and let me know.'
-          fi
+          echo "Build required: ${need_build}"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "need_build=${need_build}" >> "$GITHUB_OUTPUT"
 
   build:
     runs-on: ubuntu-latest
-    needs: [check, prepare]
+    needs: check
+    if: needs.check.outputs.need_build == 'true'
     strategy:
       fail-fast: false
       matrix:
         arch: [x86_64, aarch64]
     steps:
-      - uses: actions/checkout@v4
-      - name: Build AppImage
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Build ${{ matrix.arch }} AppImage
+        run: ./build '${{ needs.check.outputs.version }}' '${{ matrix.arch }}'
+      - uses: actions/upload-artifact@v7
+        with:
+          name: aws-${{ matrix.arch }}
+          path: aws-${{ matrix.arch }}.AppImage
+          if-no-files-found: error
+
+  publish:
+    runs-on: ubuntu-latest
+    needs: [check, build]
+    if: needs.check.outputs.need_build == 'true' && needs.build.result == 'success'
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: aws-*
+          path: dist
+          merge-multiple: true
+      - name: Publish release assets
         env:
+          GH_TOKEN: ${{ github.token }}
           VERSION: ${{ needs.check.outputs.version }}
-          ARCH: ${{ matrix.arch }}
         run: |
-          sudo apt-get install fuse -y --no-install-recommends
-          ./build "$VERSION" "$ARCH"
-      - name: Upload release asset
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ needs.check.outputs.version }}
-          ARCH: ${{ matrix.arch }}
-        run: |
-          gh release upload "v${VERSION}" "aws-${ARCH}.AppImage" \
-            --repo "$GITHUB_REPOSITORY" \
-            --clobber
+          tag="v${VERSION}"
+          if ! gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create "$tag" --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" --title "$tag" \
+              --notes 'This build is automated via GitHub Actions.'
+          fi
+          gh release upload "$tag" dist/*.AppImage \
+            --repo "$GITHUB_REPOSITORY" --clobber

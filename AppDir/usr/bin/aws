@@ -1,9 +1,9 @@
 #!/bin/bash
 set -euo pipefail; IFS=$'\n\t'
 
-DIR=$(readlink -e lib/aws)
-cd "${OWD}"
-if [[ "$(basename "${ARGV0}")" == "aws_completer" ]]; then
+HERE="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
+DIR="$(readlink -e "${HERE}/../lib/aws")"
+if [[ "$(basename "${ARGV0:-${APPIMAGE:-${0}}}")" == "aws_completer" ]]; then
   exec "${DIR}/aws_completer" "$@"
 else
   exec "${DIR}/aws" "$@"

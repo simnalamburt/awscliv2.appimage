@@ -35,6 +35,7 @@ fi
 
 VERSION="${1}"
 ARCH="${2:-$(uname -m)}"
+HOST_ARCH="$(uname -m)"
 
 echo "AWS CLI v2, in a single file - ${VERSION} ${ARCH}"
 
@@ -43,30 +44,61 @@ if [[ "$ARCH" != 'x86_64' && "$ARCH" != 'aarch64' ]]; then
   exit 1
 fi
 
+if [[ "$(uname -s)" != 'Linux' ]]; then
+  echo 'Building an AppImage requires Linux.'
+  exit 1
+fi
+
+case "$HOST_ARCH" in
+  x86_64)
+    APPIMAGETOOL_SHA256='ed4ce84f0d9caff66f50bcca6ff6f35aae54ce8135408b3fa33abfc3cb384eb0'
+    ;;
+  aarch64)
+    APPIMAGETOOL_SHA256='f0837e7448a0c1e4e650a93bb3e85802546e60654ef287576f46c71c126a9158'
+    ;;
+  *)
+    echo "Unsupported build host architecture: ${HOST_ARCH}"
+    exit 1
+    ;;
+esac
+
+case "$ARCH" in
+  x86_64)
+    RUNTIME_SHA256='2fca8b443c92510f1483a883f60061ad09b46b978b2631c807cd873a47ec260d'
+    ;;
+  aarch64)
+    RUNTIME_SHA256='00cbdfcf917cc6c0ff6d3347d59e0ca1f7f45a6df1a428a0d6d8a78664d87444'
+    ;;
+esac
+
+WORK_DIR="$(mktemp -d)"
+trap 'rm -rf "$WORK_DIR"' EXIT
+
 # Reference: https://docs.appimage.org/packaging-guide/manual.html
-cp -R AppDir aws.AppDir
+cp -R AppDir "$WORK_DIR/aws.AppDir"
 
-# Download AppImageKit. Release 13's assets were renamed with an "obsolete-"
-# prefix in July 2025; the old URLs now return 404.
-mkdir tmp
-curl -fL --retry 3 --show-error \
-  "https://github.com/AppImage/AppImageKit/releases/download/13/obsolete-appimagetool-$(uname -m).AppImage" \
-  -o tmp/appimagetool
-curl -fL --retry 3 --show-error \
-  "https://github.com/AppImage/AppImageKit/releases/download/13/obsolete-AppRun-${ARCH}" \
-  -o aws.AppDir/AppRun
-curl -fL --retry 3 --show-error \
-  "https://github.com/AppImage/AppImageKit/releases/download/13/obsolete-runtime-${ARCH}" \
-  -o tmp/runtime
-chmod +x tmp/appimagetool aws.AppDir/AppRun
+# Pin AppImage tooling and verify it before execution.
+curl --fail --location --show-error --silent --retry 3 --retry-all-errors \
+  "https://github.com/AppImage/appimagetool/releases/download/1.9.1/appimagetool-${HOST_ARCH}.AppImage" \
+  --output "$WORK_DIR/appimagetool"
+curl --fail --location --show-error --silent --retry 3 --retry-all-errors \
+  "https://github.com/AppImage/type2-runtime/releases/download/20251108/runtime-${ARCH}" \
+  --output "$WORK_DIR/runtime"
+echo "${APPIMAGETOOL_SHA256}  ${WORK_DIR}/appimagetool" | sha256sum --check --status
+echo "${RUNTIME_SHA256}  ${WORK_DIR}/runtime" | sha256sum --check --status
+chmod +x "$WORK_DIR/appimagetool"
 
-# Download and extract AWSCliv2
-mkdir -p aws.AppDir/usr/lib
-curl -fL --retry 3 --show-error \
+# Download and extract AWS CLI v2.
+mkdir -p "$WORK_DIR/aws.AppDir/usr/lib"
+curl --fail --location --show-error --silent --retry 3 --retry-all-errors \
   "https://awscli.amazonaws.com/awscli-exe-linux-${ARCH}-${VERSION}.zip" \
-  -o tmp/aws.zip
-(cd tmp; unzip -q aws.zip 'aws/dist/*')
-mv tmp/aws/dist aws.AppDir/usr/lib/aws
+  --output "$WORK_DIR/aws.zip"
+(cd "$WORK_DIR"; unzip -q aws.zip 'aws/dist/*')
+mv "$WORK_DIR/aws/dist" "$WORK_DIR/aws.AppDir/usr/lib/aws"
 
-# Package
-tmp/appimagetool -n aws.AppDir --runtime-file tmp/runtime
+# Package without requiring FUSE on the build host.
+OUTPUT="${PWD}/aws-${ARCH}.AppImage"
+ARCH="$ARCH" VERSION="$VERSION" APPIMAGE_EXTRACT_AND_RUN=1 \
+  "$WORK_DIR/appimagetool" --no-appstream \
+  --runtime-file "$WORK_DIR/runtime" \
+  "$WORK_DIR/aws.AppDir" "$OUTPUT"
